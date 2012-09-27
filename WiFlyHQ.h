@@ -93,8 +93,18 @@
 /* WLAN Join modes */
 #define WIFLY_WLAN_JOIN_MANUAL		0x00	/* Don't auto-join a network */
 #define WIFLY_WLAN_JOIN_AUTO		0x01	/* Auto-join network set in SSID, passkey, and channel. */
-#define WIFLY_WLAN_JOIN_ANY		0x02	/* Ignore SSID and join strongest network using passkey. */
+#define WIFLY_WLAN_JOIN_ANY         0x02	/* Ignore SSID and join strongest network using passkey. */
 #define WIFLY_WLAN_JOIN_ADHOC		0x04	/* Create an Adhoc network using SSID, Channel, IP and NetMask */
+
+/*WLAN Auth modes */
+#define WIFLY_WLAN_AUTH_OPEN        0x00    
+#define WIFLY_WLAN_AUTH_WEP128      0x01
+#define WIFLY_WLAN_AUTH_WPA1        0x02
+#define WIFLY_WLAN_AUTH_MIXED       0x03
+#define WIFLY_WLAN_AUTH_WPA2        0x04
+#define WIFLY_WLAN_AUTH_NONE        0x05
+#define WIFLY_WLAN_AUTH_ANY         0x06
+#define WIFLY_WLAN_AUTH_WPE64       0x08
 
 #define WIFLY_DEFAULT_TIMEOUT		500	/* 500 milliseconds */
 
@@ -132,6 +142,8 @@ public:
     char *getGateway(char *buf, int size);
     char *getDNS(char *buf, int size);
     char *getMAC(char *buf, int size);
+    char *getFTPUSER(char *buf, int size);
+    char *getFTPPASS(char *buf, int size);
     int8_t getDHCPMode();
     uint32_t getRate();
     uint8_t getTxPower();
@@ -140,6 +152,7 @@ public:
     int8_t getRSSI();
 
     bool setJoin(uint8_t join);
+    bool setAuth(uint8_t auth);/*cp*/
     boolean setDeviceID(const char *buf);
     boolean setBaud(uint32_t baud);
     uint32_t getBaud();
@@ -204,6 +217,10 @@ public:
     boolean setIOFunc(const uint8_t func);
 
     char *getTime(char *buf, int size);
+    char *getScan(char *buf, int size);/*cp*/
+    char *getScanNew(char *buf, int size, bool json = false);/*cp*/
+    uint8_t getNumNetworks(char *buf, int size);/*cp*/
+    
     uint32_t getUptime();
     uint8_t getTimezone();
     uint32_t getRTC();
@@ -234,8 +251,9 @@ public:
 
     void enableHostRestore();
     void disableHostRestore();
-
-    boolean open(const char *addr, int port=80, boolean block=true);
+    
+    boolean open(const char *addr, int port=80, boolean block=true, int reset_pin=0 );
+    //boolean open(const char *addr, int port=80, boolean block=true);
     boolean open(IPAddress addr, int port=80, boolean block=true);
     boolean close();
     boolean openComplete();
@@ -329,8 +347,8 @@ public:
     boolean checkClose(boolean peeked);
     boolean checkOpen(boolean peeked);
 
-    boolean hide();
-
+    boolean hide(bool _bHidden);/*cp*/
+    
     boolean inCommandMode;
     int  exitCommand;
     boolean dhcp;

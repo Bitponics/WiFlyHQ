@@ -125,6 +125,9 @@ const prog_char resp_Reboot[] PROGMEM = "Reboot=";
 const prog_char resp_Join[] PROGMEM = "Join=";
 const prog_char resp_Rate[] PROGMEM = "Rate=";
 const prog_char resp_Power[] PROGMEM = "TxPower=";
+const prog_char req_GetFTP[] PROGMEM = "get f\r";
+const prog_char resp_FtpUser[] PROGMEM = "User=";
+const prog_char resp_FtpPass[] PROGMEM = "Pass=";
 
 /* Request and response for specific info */
 static struct {
@@ -158,6 +161,8 @@ static struct {
     { req_GetWLAN,	resp_Join },	 /* 24 */
     { req_GetWLAN,	resp_Rate },	 /* 25 */
     { req_GetWLAN,	resp_Power },	 /* 26 */
+    { req_GetFTP,	resp_FtpUser },	 /* 27 */
+    { req_GetFTP,	resp_FtpPass },	 /* 28 */
 };
 
 /* Request indices, must match table above */
@@ -189,6 +194,8 @@ typedef enum {
     WIFLY_GET_JOIN	= 24,
     WIFLY_GET_RATE	= 25,
     WIFLY_GET_POWER	= 26,
+    WIFLY_GET_FTP_USER = 27,
+    WIFLY_GET_FTP_PASS = 28
 } e_wifly_requests;
 
 /** Convert a unsigned int to a string */
@@ -1392,6 +1399,15 @@ char *WiFly::getMAC(char *buf, int size)
     return getopt(WIFLY_GET_MAC, buf, size);
 }
 
+char *WiFly::getFTPUSER(char *buf, int size)
+{
+    return getopt(WIFLY_GET_FTP_USER, buf, size);
+}
+char *WiFly::getFTPPASS(char *buf, int size)
+{
+    return getopt(WIFLY_GET_FTP_PASS, buf, size);
+}
+
 char *WiFly::getSSID(char *buf, int size)
 {
     return getopt(WIFLY_GET_SSID, buf, size);
@@ -1634,6 +1650,148 @@ boolean WiFly::setopt(const prog_char *cmd, const char *buf, const __FlashString
     return res;
 }
 
+uint8_t WiFly:: getNumNetworks(char *buf, int size)
+{
+    const prog_char *joinResult[] = {
+        PSTR("SCAN:Found 0"),
+        PSTR("SCAN:Found 1"),
+        PSTR("SCAN:Found 2"),
+        PSTR("SCAN:Found 3"),
+        PSTR("SCAN:Found 4"),
+        PSTR("SCAN:Found 5"),
+        PSTR("SCAN:Found 6"),
+        PSTR("SCAN:Found 7"),
+        PSTR("SCAN:Found 8"),
+        PSTR("SCAN:Found 9"),
+        PSTR("SCAN:Found 10")
+    };
+    int8_t res;
+    if(!startCommand()) {
+        return -1;
+    }
+    send_P(PSTR("scan 30\r"));
+    
+    res = multiMatch_P(joinResult, 8, 15000);
+    getPrompt(); 
+    finishCommand();
+    return res;
+}
+/*get scan in new format optional return as json array string... */
+char *WiFly::getScanNew(char *buf, int size, bool json){
+    /* Set New Scan Option */
+    if (!setopt(PSTR("set sys printlvl 0x4000"), (char *)NULL)) {
+        debug.println(F("Failed to enable new scan format"));
+    }
+    
+    const prog_char *joinResult[] = {
+        PSTR("SCAN:Found 0"),
+        PSTR("SCAN:Found 1"),
+        PSTR("SCAN:Found 2"),
+        PSTR("SCAN:Found 3"),
+        PSTR("SCAN:Found 4"),
+        PSTR("SCAN:Found 5"),
+        PSTR("SCAN:Found 6"),
+        PSTR("SCAN:Found 7"),
+        PSTR("SCAN:Found 8"),
+        PSTR("SCAN:Found 9"),
+        PSTR("SCAN:Found 10")
+    };
+    
+    int8_t res;
+    if(!startCommand()) {
+        return (char *)"<error>";
+    }
+    send_P(PSTR("scan 30\r"));
+    
+    res = multiMatch_P(joinResult, 8, 15000);
+    gets(buf, size);
+    String data; 
+    if(!json){
+        for(int i = 0; i<res; i++){
+            gets(buf, size);
+            data += buf;
+            data += "\n\r";
+        }
+    } else{
+        /*format data as JSON Array*/
+        data += "[";
+        for (int i = 0; i<res; i++) {
+            data += "\"";
+            gets(buf,size);
+            data += buf;
+            if(i==res-1) data += "\"";
+            else data += "\",";
+        }
+        data += "]";
+
+    }
+    data.toCharArray(buf, size);
+    
+    finishCommand();
+    /* Reset Sys printlvl 0 */
+    if (!setopt(PSTR("set sys printlvl 0"), (char *)NULL)) {
+        debug.println(F("Failed to turn off sys print"));
+    }
+    
+    return buf;
+    
+    
+}
+/*get scan in traditional format*/
+char *WiFly::getScan(char *buf, int size)
+{
+    
+    const prog_char *joinResult[] = {
+        PSTR("SCAN:Found 0"),
+        PSTR("SCAN:Found 1"),
+        PSTR("SCAN:Found 2"),
+        PSTR("SCAN:Found 3"),
+        PSTR("SCAN:Found 4"),
+        PSTR("SCAN:Found 5"),
+        PSTR("SCAN:Found 6"),
+        PSTR("SCAN:Found 7"),
+        PSTR("SCAN:Found 8"),
+        PSTR("SCAN:Found 9"),
+        PSTR("SCAN:Found 10")
+    };
+    int8_t res;
+    if(!startCommand()) {
+        return (char *)"<error>";
+    }
+    send_P(PSTR("scan 30\r"));
+    
+    getPrompt();
+    
+    //check for number of networks found
+    res = multiMatch_P(joinResult, 8, 15000);
+    
+    match_P(PSTR("Num"));
+    match_P(PSTR("SSID"));
+    match_P(PSTR("Ch"));
+    match_P(PSTR("RSSI"));
+    match_P(PSTR("Sec"));
+    match_P(PSTR("MAC"));
+    match_P(PSTR("Address"));
+    match_P(PSTR("Suites"));
+    gets(buf, size);
+    
+    String data; 
+    for(int i = 0; i<res; i++){
+        gets(buf, size);
+        data +=buf;
+        data += "\n\r";
+    }
+    data.toCharArray(buf, size);
+    
+    finishCommand();
+    //getPrompt();  
+    //finishCommand();
+    return buf;
+
+    
+}
+
+
 /* Save current configuration */
 boolean WiFly::save()
 {
@@ -1695,6 +1853,11 @@ boolean WiFly::factoryRestore()
 boolean WiFly::setDeviceID(const char *buf)
 {
     return setopt(PSTR("set o d"), buf);
+}
+
+bool WiFly::setAuth(uint8_t auth){
+
+    return setopt(PSTR("set wlan auth"), auth);
 }
 
 bool WiFly::setJoin(uint8_t join)
@@ -1945,9 +2108,10 @@ boolean WiFly::disableDataTrigger()
 }
 
 /** Hide passphrase and key */
-boolean WiFly::hide()
+boolean WiFly::hide(bool _bHidden)
 {
-    return setopt(PSTR("set wlan hide 1"), (char *)NULL);
+    if(_bHidden==false)return setopt(PSTR("set wlan hide 0"), (char *)NULL);
+    else return setopt(PSTR("set wlan hide 1"), (char *)NULL);
 }
 
 boolean WiFly::disableDHCP()
@@ -1989,7 +2153,7 @@ boolean WiFly::setKey(const char *buf)
 
     res = setopt(PSTR("set wlan key"), buf);
 
-    hide();	/* hide the key */
+    hide(false);	/* hide the key */
     return res;
 }
 
@@ -2003,7 +2167,7 @@ boolean WiFly::setPassphrase(const char *buf)
     boolean res;
     res = setopt(PSTR("set wlan phrase"), buf);
 
-    hide();	/* hide the key */
+    hide(false);	/* hide the key */
     return res;
 }
 
@@ -2406,7 +2570,7 @@ boolean WiFly::createAdhocNetwork(const char *ssid, uint8_t channel)
  * @retval true - success, the connection is open
  * @retval false - failed, or connection already in progress
  */
-boolean WiFly::open(const char *addr, int port, boolean block)
+boolean WiFly::open(const char *addr, int port, boolean block, int reset_pin)
 {
     char buf[20];
     char ch;
@@ -2434,7 +2598,12 @@ boolean WiFly::open(const char *addr, int port, boolean block)
     if (!getPrompt()) {
 	debug.println(F("Failed to get prompt"));
 	debug.println(F("WiFly has crashed and will reboot..."));
-	while (1); /* wait for the reboot */
+        while (1){ 
+            debug.println(F("1")); 
+            if(reset_pin!=0){
+                //write arduino to reset - write pin to high /*cp*/
+                digitalWrite(reset_pin,LOW);
+            } } /* wait for the reboot */
 	return false;
     }
 
