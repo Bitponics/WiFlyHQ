@@ -1669,7 +1669,7 @@ uint8_t WiFly:: getNumNetworks(char *buf, int size)
     if(!startCommand()) {
         return -1;
     }
-    send_P(PSTR("scan 30\r"));
+    send_P(PSTR("scan 1000\r"));
     
     res = multiMatch_P(joinResult, 8, 15000);
     getPrompt(); 
@@ -1701,7 +1701,7 @@ char *WiFly::getScanNew(char *buf, int size, bool json){
     if(!startCommand()) {
         return (char *)"<error>";
     }
-    send_P(PSTR("scan 30\r"));
+    send_P(PSTR("scan 1000\r"));
     
     res = multiMatch_P(joinResult, 8, 15000);
     gets(buf, size);
@@ -1758,7 +1758,7 @@ char *WiFly::getScan(char *buf, int size)
     if(!startCommand()) {
         return (char *)"<error>";
     }
-    send_P(PSTR("scan 30\r"));
+    send_P(PSTR("scan 1000\r"));
     
     getPrompt();
     
@@ -2550,6 +2550,30 @@ boolean WiFly::createAdhocNetwork(const char *ssid, uint8_t channel)
     setNetmask(F("255.255.0.0"));
 
     setJoin(WIFLY_WLAN_JOIN_ADHOC);
+    setSSID(ssid);
+    setChannel(channel);
+    save();
+    finishCommand();
+    reboot();
+    return true;
+}
+
+/**
+ * Create an AP WiFi network.
+ * The WiFly is assigned IP address 169.254.1.1.
+ * @param ssid the SSID to use for the network
+ * @param channel the WiFi channel to use; 1 to 13.
+ * @retval true - successfully create Ad Hoc network
+ * @retval false - failed
+ * @note the WiFly is rebooted as the final step of this command.
+ */
+boolean WiFly::createAPNetwork(const char *ssid, uint8_t channel) {
+    startCommand();
+    setDHCP(WIFLY_DHCP_MODE_SERVER);
+    setIP(F("169.254.1.1"));
+    setNetmask(F("255.255.255.0"));
+
+    setJoin(WIFLY_WLAN_JOIN_AP);
     setSSID(ssid);
     setChannel(channel);
     save();
