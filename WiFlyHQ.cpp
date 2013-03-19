@@ -1699,7 +1699,7 @@ char *WiFly::getScanNew(char *buf, int size, bool json){
     
     int8_t res;
     if(!startCommand()) {
-        return (char *)"<error>";
+        return (char *) "<error>";
     }
     send_P(PSTR("scan 1000\r"));
     
@@ -1716,9 +1716,23 @@ char *WiFly::getScanNew(char *buf, int size, bool json){
         /*format data as JSON Array*/
         data += "[";
         for (int i = 0; i<res; i++) {
+            String temp;
             data += "\"";
+            
+            //find mac address count , 6
+            int f, t=0;
+//            for(int k =0; k<7; k++){
+//                f=temp.indexOf(','+t);
+//                t=f;
+//            }
+//            data+=temp.substring(0,t);
+//            data+=temp.substring(t+17);
+            for (int k=0; k<8; k++) {
+                getsTerm(buf,size,',',100);
+                if(k==0 || k==3) { data += buf; data+= ','; }
+            }
             gets(buf,size);
-            data += buf;
+            data+=buf;
             if(i==res-1) data += "\"";
             else data += "\",";
         }
@@ -1778,7 +1792,7 @@ char *WiFly::getScan(char *buf, int size)
     String data; 
     for(int i = 0; i<res; i++){
         gets(buf, size);
-        data +=buf;
+        data += buf;
         data += "\n\r";
     }
     data.toCharArray(buf, size);
