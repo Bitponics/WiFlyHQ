@@ -175,6 +175,7 @@ public:
     boolean setNetmask(const char *buf);
     boolean setNetmask(const __FlashStringHelper *buf);
     boolean setGateway(const char *buf);
+    boolean setGateway(const __FlashStringHelper *buf);
     boolean setDNS(const char *buf);
     boolean setChannel(uint8_t channel);
     boolean setKey(const char *buf);

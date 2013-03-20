@@ -1719,14 +1719,8 @@ char *WiFly::getScanNew(char *buf, int size, bool json){
             String temp;
             data += "\"";
             
-            //find mac address count , 6
+            //find only what we need.
             int f, t=0;
-//            for(int k =0; k<7; k++){
-//                f=temp.indexOf(','+t);
-//                t=f;
-//            }
-//            data+=temp.substring(0,t);
-//            data+=temp.substring(t+17);
             for (int k=0; k<8; k++) {
                 getsTerm(buf,size,',',100);
                 if(k==0 || k==3) { data += buf; data+= ','; }
@@ -1940,6 +1934,10 @@ boolean WiFly::setNetmask(const __FlashStringHelper *buf)
 boolean WiFly::setGateway(const char *buf)
 {
     return setopt(PSTR("set ip gateway"), buf);
+}
+boolean WiFly::setGateway(const __FlashStringHelper *buf)
+{
+    return setopt(PSTR("set ip gateway"), NULL, buf);
 }
 
 boolean WiFly::setDNS(const char *buf)
@@ -2583,13 +2581,17 @@ boolean WiFly::createAdhocNetwork(const char *ssid, uint8_t channel)
  */
 boolean WiFly::createAPNetwork(const char *ssid, uint8_t channel) {
     startCommand();
+
+
+    setJoin(WIFLY_WLAN_JOIN_AP);
+    setChannel(channel);
+    setSSID(ssid);
+    
     setDHCP(WIFLY_DHCP_MODE_SERVER);
     setIP(F("169.254.1.1"));
     setNetmask(F("255.255.255.0"));
-
-    setJoin(WIFLY_WLAN_JOIN_AP);
-    setSSID(ssid);
-    setChannel(channel);
+    setGateway(F("10.10.10.3"));
+    
     save();
     finishCommand();
     reboot();
