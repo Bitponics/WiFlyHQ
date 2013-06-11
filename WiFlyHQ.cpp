@@ -28,6 +28,7 @@
  */
 
 #include "WiFlyHQ.h"
+#include <avr/wdt.h>
 
 /* For free memory check */
 extern unsigned int __bss_end;
@@ -1669,7 +1670,7 @@ uint8_t WiFly:: getNumNetworks(char *buf, int size)
     if(!startCommand()) {
         return -1;
     }
-    send_P(PSTR("scan 1000\r"));
+    send_P(PSTR("scan \r"));
     
     res = multiMatch_P(joinResult, 8, 15000);
     getPrompt(); 
@@ -1701,7 +1702,7 @@ char *WiFly::getScanNew(char *buf, int size, bool json){
     if(!startCommand()) {
         return (char *) "<error>";
     }
-    send_P(PSTR("scan 1000\r"));
+    send_P(PSTR("scan \r"));
     
     res = multiMatch_P(joinResult, 8, 15000);
     gets(buf, size);
@@ -1766,7 +1767,7 @@ char *WiFly::getScan(char *buf, int size)
     if(!startCommand()) {
         return (char *)"<error>";
     }
-    send_P(PSTR("scan 1000\r"));
+    send_P(PSTR("scan \r"));
     
     getPrompt();
     
@@ -2638,12 +2639,7 @@ boolean WiFly::open(const char *addr, int port, boolean block, int reset_pin)
     if (!getPrompt()) {
 	debug.println(F("Failed to get prompt"));
 	debug.println(F("WiFly has crashed and will reboot..."));
-        while (1){ 
-            debug.println(F("1")); 
-            if(reset_pin!=0){
-                //write arduino to reset - write pin to high /*cp*/
-                digitalWrite(reset_pin,LOW);
-            } } /* wait for the reboot */
+     wdt_enable(WDTO_30MS); 
 	return false;
     }
 
